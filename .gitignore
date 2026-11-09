@@ -1,0 +1,53 @@
+# Virtual environment
+.venv/
+venv/
+env/
+ENV/
+*.venv
+
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# YOLO & Model weights
+*.pt
+*.pth
+*.onnx
+*.engine
+*.torchscript
+yolo*.pt
+yolov8*.pt
+runs/
+
+# Video & Large Data files
+data/*
+!data/.gitkeep
+output/*
+!output/.gitkeep
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# IDE & OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
