@@ -23,7 +23,8 @@ class VideoTrackingPipeline:
         self,
         video_source_path: str,
         video_output_path: str,
-        model_name: str = "yolov8n.pt",
+        model_name: str = "yolov8l.pt",
+        tracker_type: str = "bytetrack.yaml",
         history_len: int = 90,
         target_classes: Optional[list] = None,
         conf_threshold: float = 0.3,
@@ -35,7 +36,8 @@ class VideoTrackingPipeline:
         Args:
             video_source_path: Chemin vers le fichier vidéo d'entrée.
             video_output_path: Chemin vers le fichier vidéo généré en sortie.
-            model_name: Poids YOLOv8 (ex: 'yolov8n.pt', 'yolov8s.pt').
+            model_name: Poids YOLOv8 (ex: 'yolov8n.pt', 'yolov8l.pt').
+            tracker_type: Algorithme de suivi ('bytetrack.yaml' ou 'botsort.yaml').
             history_len: Nombre de points historiques retenus par trajectoire (défaut: 90).
             target_classes: Classes COCO à filtrer (défaut: [0] pour 'person').
             conf_threshold: Seuil de confiance de détection.
@@ -43,13 +45,22 @@ class VideoTrackingPipeline:
             show_live: Afficher la fenêtre de prévisualisation en direct.
         """
         self.video_source_path = video_source_path
-        self.video_output_path = video_output_path
         self.model_name = model_name
-        self.tracker_type = TRACKER_TYPE
+        self.tracker_type = tracker_type
         self.history_len = history_len
         self.target_classes = target_classes if target_classes is not None else [0]
         self.conf_threshold = conf_threshold
         self.show_live = show_live
+
+        # Détermination du nom de fichier vidéo de sortie incluant les modèles
+        if video_output_path is None or os.path.isdir(video_output_path) or video_output_path.endswith(("/", "\\")):
+            det_slug = os.path.splitext(os.path.basename(self.model_name))[0]
+            trk_slug = os.path.splitext(os.path.basename(self.tracker_type))[0]
+            filename = f"{det_slug}_{trk_slug}_result.mp4"
+            target_dir = video_output_path if (video_output_path and os.path.isdir(video_output_path)) else "output"
+            self.video_output_path = os.path.join(target_dir, filename)
+        else:
+            self.video_output_path = video_output_path
 
         # --- Étape 1 : Initialisation du Modèle IA ---
         print(f"[1/4] Chargement du modèle YOLO : {self.model_name}...")
@@ -103,7 +114,8 @@ class VideoTrackingPipeline:
 
     def process(self):
         """Exécute la boucle principale de traitement séquentiel frame par frame."""
-        print(f"[3/4] Démarrage du traitement vidéo avec le tracker [ByteTrack]...")
+        trk_name = "BOT-SORT" if "botsort" in self.tracker_type.lower() else "BYTETRACK"
+        print(f"[3/4] Démarrage du traitement vidéo avec [{self.model_name}] + [{trk_name}]...")
         frame_idx = 0
 
         window_name = "Video Processing Pipeline - YOLOv8 + Tracker"
@@ -285,7 +297,9 @@ class VideoTrackingPipeline:
         # Textes des métriques
         text_flux = f"FLUX TOTAL : {self.count_total}  (ENTREES: {self.count_in} | SORTIES: {self.count_out})"
         text_occupancy = f"OCCUPATION : {occupancy} pers."
-        text_meta = f"Frame : {frame_idx}/{self.total_frames} | Tracker : BYTETRACK"
+        trk_name = "BOT-SORT" if "botsort" in self.tracker_type.lower() else "BYTETRACK"
+        det_name = self.model_name.replace(".pt", "").upper()
+        text_meta = f"Frame : {frame_idx}/{self.total_frames} | {det_name} + {trk_name}"
 
         cv2.putText(frame, text_flux, (20, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 255), 2, cv2.LINE_AA)
         cv2.putText(frame, text_occupancy, (20, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (50, 255, 50), 2, cv2.LINE_AA)

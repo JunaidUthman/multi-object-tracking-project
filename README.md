@@ -1,4 +1,4 @@
-# Pipeline de Détection, Suivi et Analyse Vidéo (YOLOv8 + ByteTrack)
+# Pipeline de Détection, Suivi et Analyse Vidéo (YOLOv8 + ByteTrack / BoT-SORT)
 
 Application de traitement vidéo séquentiel en flux continu pour l'analyse de trajectoires, le comptage de flux (entrées / sorties) et l'estimation de l'occupation dans des lieux publics (ex: séquences MOT17).
 
@@ -14,8 +14,11 @@ computer_vision_project/
 │   ├── __init__.py
 │   ├── geometry.py        # Calculs géométriques (centres de boîtes, intersection de segments, sens)
 │   ├── interactive.py     # Sélection interactive de la ligne de comptage par clic souris
-│   └── pipeline.py        # Pipeline séquentiel : YOLOv8 + ByteTrack + Historique + Rendu
+│   ├── launcher_ui.py     # Interface moderne de sélection des algorithmes IA (Détecteur + Tracker)
+│   └── pipeline.py        # Pipeline séquentiel : YOLOv8 + Tracker + Historique + Rendu
 ├── main.py                # Script d'exécution en ligne de commande
+├── yolov8n.pt             # Poids YOLOv8 Nano (6 Mo - rapide)
+├── yolov8l.pt             # Poids YOLOv8 Large (84 Mo - haute précision)
 ├── requirements.txt       # Dépendances requises
 └── .gitignore             # Exclusion des vidéos, poids et caches
 ```
@@ -34,12 +37,6 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-> **Note :** Si votre machine ne dispose pas d'un GPU NVIDIA dédié, vous pouvez installer la version légère CPU de PyTorch avant d'installer les dépendances pour éviter de télécharger plusieurs gigaoctets de bibliothèques CUDA :
-> ```bash
-> pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-> pip install -r requirements.txt
-> ```
-
 ---
 
 ## 🚀 Utilisation
@@ -47,31 +44,39 @@ pip install -r requirements.txt
 ### 1. Déposer une vidéo
 Placez votre vidéo brute dans le dossier [`data/`](file:///home/junaid_uth/projects/computer_vision_project/data) nommée `data/test_video.mp4`.
 
-### 2. Lancer le pipeline avec sélection interactive
+### 2. Lancer l'application
 ```bash
-python main.py --input data/test_video.mp4 --output output/resultat.mp4
+python main.py
 ```
 
-1. La première image de la vidéo s'affiche.
-2. Cliquez deux fois avec la souris pour définir le segment virtuel de comptage.
-3. Appuyez sur **[ENTRÉE]** pour valider et démarrer le traitement.
-4. Appuyez sur **[R]** pour réinitialiser les points ou **[ÉCHAP]** pour utiliser la ligne médiane par défaut.
+1. **Écran 1 (Sélecteur d'Algorithmes)** :
+   Une interface graphique s'affiche avec des boutons radio pour choisir :
+   - **Détecteur** : `YOLOv8n` ou `YOLOv8l (Large)` *(sélectionné par défaut)*
+   - **Tracker** : `ByteTrack` ou `BoT-SORT`
+   - Cliquez sur **[LANCER LE PROGRAMME]** ou appuyez sur **[ENTRÉE]**.
+
+2. **Écran 2 (Ligne de Comptage)** :
+   - Cliquez 2 fois avec la souris pour positionner le segment virtuel de flux.
+   - Appuyez sur **[ENTRÉE]** pour démarrer le traitement temps réel.
 
 ---
 
-### 3. Options avancées
+### 3. Options avancées en ligne de commande
+
+Si vous préférez contourner l'interface graphique de sélection au démarrage :
 
 | Option | Rôle | Exemple |
 | :--- | :--- | :--- |
+| `--model, -m` | Forcer le modèle YOLOv8 | `--model yolov8l.pt` ou `--model yolov8n.pt` |
+| `--tracker, -t` | Forcer l'algorithme de suivi | `--tracker botsort.yaml` ou `--tracker bytetrack.yaml` |
 | `--input, -i` | Chemin de la vidéo d'entrée | `--input data/test_video.mp4` |
-| `--output, -o` | Chemin de la vidéo de sortie | `--output output/annotated.mp4` |
-| `--model, -m` | Modèle YOLOv8 | `--model yolov8n.pt` (nano) ou `yolov8s.pt` (small) |
+| `--output, -o` | Chemin de la vidéo de sortie (défaut auto: `output/<modele>_<tracker>_result.mp4`) | `--output output/mon_test.mp4` |
 | `--line` | Définir la ligne sans fenêtre graphique | `--line 100,500,800,500` *(x1,y1,x2,y2)* |
-| `--no-show` | Traitement rapide en tâche de fond (sans affichage direct) | `--no-show` |
-| `--history` | Longueur de la traînée de trajectoire (défaut: 90 frames = ~3s) | `--history 120` |
-| `--conf` | Seuil de confiance minimal | `--conf 0.35` |
+| `--no-ui` | Sauter l'interface de sélection au lancement | `--no-ui` |
+| `--no-show` | Traitement rapide sans affichage direct | `--no-show` |
+| `--history` | Longueur de la traînée de trajectoire | `--history 120` |
 
-Exemple en mode serveur (sans écran) :
+Exemple direct avec YOLOv8l et BoT-SORT :
 ```bash
-python main.py --input data/test_video.mp4 --output output/resultat.mp4 --line 0,600,1920,600 --no-show
+python main.py --model yolov8l.pt --tracker botsort.yaml
 ```
