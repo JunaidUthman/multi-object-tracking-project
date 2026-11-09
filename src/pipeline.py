@@ -22,12 +22,14 @@ class VideoTrackingPipeline:
     def __init__(
         self,
         video_source_path: str,
-        video_output_path: str,
+        video_output_path: Optional[str] = None,
         model_name: str = "yolov8l.pt",
-        tracker_type: str = "bytetrack.yaml",
+        tracker_type: str = "configs/custom_botsort.yaml",
         history_len: int = 90,
         target_classes: Optional[list] = None,
-        conf_threshold: float = 0.3,
+        conf_threshold: float = 0.15,
+        iou_threshold: float = 0.65,
+        imgsz: int = 1280,
         counting_line: Optional[Tuple[Tuple[int, int], Tuple[int, int]]] = None,
         show_live: bool = True
     ):
@@ -37,10 +39,12 @@ class VideoTrackingPipeline:
             video_source_path: Chemin vers le fichier vidéo d'entrée.
             video_output_path: Chemin vers le fichier vidéo généré en sortie.
             model_name: Poids YOLOv8 (ex: 'yolov8n.pt', 'yolov8l.pt').
-            tracker_type: Algorithme de suivi ('bytetrack.yaml' ou 'botsort.yaml').
+            tracker_type: Configuration tracker (ex: 'configs/custom_botsort.yaml').
             history_len: Nombre de points historiques retenus par trajectoire (défaut: 90).
             target_classes: Classes COCO à filtrer (défaut: [0] pour 'person').
-            conf_threshold: Seuil de confiance de détection.
+            conf_threshold: Seuil de confiance minimal (défaut: 0.15 pour personnes à moitié cachées).
+            iou_threshold: Seuil de recouvrement NMS (défaut: 0.65 pour séparer les personnes proches).
+            imgsz: Taille de redimensionnement de détection (défaut: 1280 pixels).
             counting_line: Coordonnées prédéfinies de la ligne ((x1, y1), (x2, y2)).
             show_live: Afficher la fenêtre de prévisualisation en direct.
         """
@@ -50,12 +54,14 @@ class VideoTrackingPipeline:
         self.history_len = history_len
         self.target_classes = target_classes if target_classes is not None else [0]
         self.conf_threshold = conf_threshold
+        self.iou_threshold = iou_threshold
+        self.imgsz = imgsz
         self.show_live = show_live
 
         # Détermination du nom de fichier vidéo de sortie incluant les modèles
         if video_output_path is None or os.path.isdir(video_output_path) or video_output_path.endswith(("/", "\\")):
             det_slug = os.path.splitext(os.path.basename(self.model_name))[0]
-            trk_slug = os.path.splitext(os.path.basename(self.tracker_type))[0]
+            trk_slug = os.path.splitext(os.path.basename(self.tracker_type))[0].replace("custom_", "")
             filename = f"{det_slug}_{trk_slug}_result.mp4"
             target_dir = video_output_path if (video_output_path and os.path.isdir(video_output_path)) else "output"
             self.video_output_path = os.path.join(target_dir, filename)
@@ -116,6 +122,8 @@ class VideoTrackingPipeline:
         """Exécute la boucle principale de traitement séquentiel frame par frame."""
         trk_name = "BOT-SORT" if "botsort" in self.tracker_type.lower() else "BYTETRACK"
         print(f"[3/4] Démarrage du traitement vidéo avec [{self.model_name}] + [{trk_name}]...")
+        print(f"      • Paramètres : conf={self.conf_threshold} | iou={self.iou_threshold} | imgsz={self.imgsz}")
+        print(f"      • Config Tracker : {self.tracker_type}")
         frame_idx = 0
 
         window_name = "Video Processing Pipeline - YOLOv8 + Tracker"
@@ -141,6 +149,8 @@ class VideoTrackingPipeline:
                     tracker=self.tracker_type,
                     classes=self.target_classes,
                     conf=self.conf_threshold,
+                    iou=self.iou_threshold,
+                    imgsz=self.imgsz,
                     verbose=False
                 )
 

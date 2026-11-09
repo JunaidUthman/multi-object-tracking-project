@@ -1,0 +1,17 @@
+# Ultralytics BoT-SORT avec Re-ID et mémoire d'occultation optimisée
+tracker_type: botsort # (str) Tracker backend: botsort
+track_high_thresh: 0.25 # (float) Seuil première passe
+track_low_thresh: 0.1 # (float) Seuil deuxième passe pour occultations partielles
+new_track_thresh: 0.25 # (float) Seuil pour démarrer une nouvelle trajectoire
+track_buffer: 90 # (int) Nombre de frames en mémoire pour pistes perdues (90 frames = 3s à 30 FPS)
+match_thresh: 0.8 # (float) Seuil de correspondance géométrique IoU
+fuse_score: True # (bool) Fusionner score de détection et cinématique
+
+# Paramètres spécifiques BoT-SORT
+gmc_method: sparseOptFlow # (str) Compensation du mouvement caméra (flux optique)
+
+# Paramètres de Ré-Identification (Re-ID)
+proximity_thresh: 0.5 # (float) Seuil minimal de proximité spatiale
+appearance_thresh: 0.25 # (float) Poids fort sur l'apparence visuelle (vêtements) pour éviter les permutations d'ID
+with_reid: True # (bool) Activation du module d'apparence Re-ID
+model: auto # (str) Utilise les descripteurs visuels du réseau YOLO

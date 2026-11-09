@@ -13,7 +13,7 @@ class LauncherDialog:
     def __init__(
         self,
         default_model: str = "yolov8l.pt",
-        default_tracker: str = "bytetrack.yaml"
+        default_tracker: str = "configs/custom_botsort.yaml"
     ):
         self.selected_model = default_model
         self.selected_tracker = default_tracker
@@ -29,29 +29,29 @@ class LauncherDialog:
             {
                 "id": "yolov8n.pt",
                 "title": "YOLOv8n (Nano)",
-                "desc": "Ultra-rapide (6 Mo) - Idéal pour processeurs modestes",
+                "desc": "Ultra-rapide (6 Mo) - Usage standard / CPU",
                 "badge": "Rapide"
             },
             {
                 "id": "yolov8l.pt",
                 "title": "YOLOv8l (Large)",
-                "desc": "Haute précision (84 Mo) - Robuste aux occultations et scènes denses",
+                "desc": "Haute précision (84 Mo) - Robuste aux foules et occultations",
                 "badge": "Précis (Recommandé)"
             }
         ]
 
         self.tracker_options = [
             {
-                "id": "bytetrack.yaml",
-                "title": "ByteTrack",
-                "desc": "Cinématique + Filtre de Kalman (rapide et fluide)",
-                "badge": "Temps réel"
+                "id": "configs/custom_botsort.yaml",
+                "title": "BoT-SORT (Re-ID Optimisé)",
+                "desc": "Re-ID visuel (vêtements) + mémoire 90f - Anti ID Switches",
+                "badge": "Recommandé"
             },
             {
-                "id": "botsort.yaml",
-                "title": "BoT-SORT",
-                "desc": "Re-ID visuel + compensation du mouvement caméra (GMC)",
-                "badge": "Robuste"
+                "id": "configs/custom_bytetrack.yaml",
+                "title": "ByteTrack (Cinématique)",
+                "desc": "Filtre de Kalman + mémoire 90f (léger et fluide)",
+                "badge": "Rapide"
             }
         ]
 
@@ -320,7 +320,7 @@ class LauncherDialog:
 
 def launch_algorithm_selector(
     default_model: str = "yolov8l.pt",
-    default_tracker: str = "bytetrack.yaml"
+    default_tracker: str = "configs/custom_botsort.yaml"
 ) -> Tuple[str, str]:
     """Affiche l'interface de sélection graphique ou terminal en cas d'absence d'écran.
 
@@ -341,10 +341,10 @@ def launch_algorithm_selector(
         model = "yolov8n.pt" if choice_det == "1" else "yolov8l.pt"
 
         print("\nAlgorithmes de Suivi (Tracking) disponibles :")
-        print("  [1] ByteTrack - Suivi cinématique rapide (défaut)")
-        print("  [2] BoT-SORT  - Suivi avec Re-ID et compensation caméra")
+        print("  [1] BoT-SORT  - Re-ID visuel + mémoire 90f (Recommandé)")
+        print("  [2] ByteTrack - Suivi cinématique rapide")
         choice_trk = input("Votre choix [1/2] (défaut: 1) : ").strip()
-        tracker = "botsort.yaml" if choice_trk == "2" else "bytetrack.yaml"
+        tracker = "configs/custom_bytetrack.yaml" if choice_trk == "2" else "configs/custom_botsort.yaml"
 
         print("=" * 60 + "\n")
         return (model, tracker)
@@ -381,9 +381,9 @@ def launch_algorithm_selector(
             elif key == ord('2'):
                 dialog.selected_model = "yolov8l.pt"
             elif key == ord('3'):
-                dialog.selected_tracker = "bytetrack.yaml"
+                dialog.selected_tracker = "configs/custom_botsort.yaml"
             elif key == ord('4'):
-                dialog.selected_tracker = "botsort.yaml"
+                dialog.selected_tracker = "configs/custom_bytetrack.yaml"
 
         cv2.destroyWindow(window_name)
 
@@ -392,5 +392,5 @@ def launch_algorithm_selector(
 
     except cv2.error as e:
         print(f"[AVERTISSEMENT] Erreur d'ouverture d'interface graphique : {e}")
-        print("[INFO] Utilisation des options par défaut : YOLOv8l + ByteTrack")
+        print("[INFO] Utilisation des options par défaut : YOLOv8l + BoT-SORT")
         return (default_model, default_tracker)

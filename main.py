@@ -55,8 +55,7 @@ def main():
         "--tracker", "-t",
         type=str,
         default=None,
-        choices=["bytetrack.yaml", "botsort.yaml"],
-        help="Algorithme de tracking (si omis, la boîte de sélection graphique s'affiche)"
+        help="Algorithme de tracking ('botsort', 'bytetrack', ou chemin vers un fichier YAML)"
     )
     parser.add_argument(
         "--line",
@@ -67,8 +66,20 @@ def main():
     parser.add_argument(
         "--conf",
         type=float,
-        default=0.3,
-        help="Seuil de confiance pour les détections YOLO (défaut: 0.3)"
+        default=0.15,
+        help="Seuil de confiance pour les détections YOLO (défaut: 0.15 pour personnes à moitié cachées)"
+    )
+    parser.add_argument(
+        "--iou",
+        type=float,
+        default=0.65,
+        help="Seuil de recouvrement NMS pour séparer les personnes proches (défaut: 0.65)"
+    )
+    parser.add_argument(
+        "--imgsz",
+        type=int,
+        default=1280,
+        help="Résolution d'inférence en pixels pour séparer les pixels des foules (défaut: 1280)"
     )
     parser.add_argument(
         "--history",
@@ -103,18 +114,27 @@ def main():
     if (model_name is None or tracker_name is None) and not args.no_ui:
         chosen_model, chosen_tracker = launch_algorithm_selector(
             default_model="yolov8l.pt",
-            default_tracker="bytetrack.yaml"
+            default_tracker="configs/custom_botsort.yaml"
         )
         model_name = model_name or chosen_model
         tracker_name = tracker_name or chosen_tracker
     else:
         # Valeurs par défaut si --no-ui sans arguments
         model_name = model_name or "yolov8l.pt"
-        tracker_name = tracker_name or "bytetrack.yaml"
+        tracker_name = tracker_name or "configs/custom_botsort.yaml"
+
+    # Résolution des alias vers les fichiers de configuration optimisés
+    tracker_aliases = {
+        "botsort": "configs/custom_botsort.yaml",
+        "botsort.yaml": "configs/custom_botsort.yaml",
+        "bytetrack": "configs/custom_bytetrack.yaml",
+        "bytetrack.yaml": "configs/custom_bytetrack.yaml",
+    }
+    tracker_name = tracker_aliases.get(tracker_name, tracker_name)
 
     # Génération automatique du nom de vidéo de sortie selon la combinaison de modèles
     det_slug = os.path.splitext(os.path.basename(model_name))[0]
-    trk_slug = os.path.splitext(os.path.basename(tracker_name))[0]
+    trk_slug = os.path.splitext(os.path.basename(tracker_name))[0].replace("custom_", "")
     default_filename = f"{det_slug}_{trk_slug}_result.mp4"
 
     if args.output is None:
@@ -126,7 +146,7 @@ def main():
 
     counting_line = parse_line_coordinates(args.line)
 
-    trk_label = "BoT-SORT" if "botsort" in tracker_name.lower() else "ByteTrack"
+    trk_label = "BoT-SORT (Re-ID)" if "botsort" in tracker_name.lower() else "ByteTrack"
 
     print("=" * 60)
     print("      PIPELINE DE TRAITEMENT VIDÉO & ANALYSE DE TRAJECTOIRES")
@@ -135,6 +155,7 @@ def main():
     print(f"• Vidéo de sortie    : {output_path}")
     print(f"• Modèle Détecteur   : {model_name}")
     print(f"• Algorithme Tracker : {trk_label} ({tracker_name})")
+    print(f"• Paramètres NMS     : conf={args.conf} | iou={args.iou} | imgsz={args.imgsz}")
     print(f"• Historique points  : {args.history} frames")
     if counting_line:
         print(f"• Ligne manuelle     : {counting_line[0]} -> {counting_line[1]}")
@@ -149,6 +170,8 @@ def main():
         tracker_type=tracker_name,
         history_len=args.history,
         conf_threshold=args.conf,
+        iou_threshold=args.iou,
+        imgsz=args.imgsz,
         counting_line=counting_line,
         show_live=not args.no_show
     )

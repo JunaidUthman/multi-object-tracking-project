@@ -1,0 +1,8 @@
+# Ultralytics ByteTrack avec mémoire d'occultation optimisée
+tracker_type: bytetrack # (str) Tracker backend: bytetrack
+track_high_thresh: 0.25 # (float) Seuil première passe
+track_low_thresh: 0.1 # (float) Seuil deuxième passe pour occultations partielles
+new_track_thresh: 0.25 # (float) Seuil pour démarrer une nouvelle trajectoire
+track_buffer: 90 # (int) Nombre de frames en mémoire pour pistes perdues (90 frames = 3s à 30 FPS)
+match_thresh: 0.75 # (float) Seuil de correspondance géométrique IoU
+fuse_score: True # (bool) Fusionner score de détection et cinématique
